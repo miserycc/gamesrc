@@ -145,9 +145,9 @@ var Print = function(ffs) {
 
 
 
-var ffs = new Fireflies();
-Print(ffs);
-for (var i = 0; i < maxIterations; i++) {
-	Move(ffs);
-};
-Print(ffs);
+// var ffs = new Fireflies();
+// Print(ffs);
+// for (var i = 0; i < maxIterations; i++) {
+// 	Move(ffs);
+// };
+// Print(ffs);
