@@ -1,14 +1,3 @@
-// var http = require('http');
-// http.createServer(function(req, res) {
-// 	res.writeHead(200, {'ContentType': 'text/plain'});
-// 	res.end('Hello World\n'); 
-// }).listen(1337);
-// console.log('Server running at http://localhost:1337/');
-
-//------------------------------------------------
-//WebSvr.js
-// 一个演示Web服务器
-//------------------------------------------------
 //开始服务启动计时器
 console.time('[WebSvr][Start]');
 //请求模块
@@ -52,7 +41,7 @@ var funGetContentType = function(filePath) {
 var funWebSvr = function (req, res) {
 	var reqUrl = req.url; //获取请求的url
 	//向控制台输出请求的路径
-	console.log(reqUrl);
+	// console.log(reqUrl);
 	//使用url解析模块获取url中的路径名
 	var pathName = libUrl.parse(reqUrl).pathname;
 	if (libPath.extname(pathName) == "") {
@@ -87,16 +76,20 @@ var funWebSvr = function (req, res) {
 		}
 	});
 }
-//创建一个http服务器
-var webSvr = libHttp.createServer(funWebSvr);
-//指定服务器错误事件响应
-webSvr.on("error", function(error) {
-	console.log(error); //在控制台中输出错误信息
-});
-//开始侦听8124端口
-webSvr.listen(8124,function() {
+//创建服务器
+var app = require('http').createServer(funWebSvr)
+  , io = require('socket.io').listen(app)
+//监听80端口
+app.listen(80, function() {
 	//向控制台输出服务启动的信息
 	console.log('[WebSvr][Start] running at http://127.0.0.1:8124/');
 	//结束服务启动计时器并输出
 	console.timeEnd('[WebSvr][Start]');
-}); 
+});
+//创建socket服务
+io.sockets.on('connection', function (socket) {
+	socket.on('message', function (data) {
+	 	socket.broadcast.emit('chat', data);
+	 	console.log(data);
+ 	});
+});
