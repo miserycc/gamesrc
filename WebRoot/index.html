@@ -10,26 +10,37 @@
 Incoming Chat:&nbsp;<ul id="incomingChatMessages"></ul>
 <br />
 <input type="text" id="outgoingChatMessage">
+<input type="text" id="username">
+<input type="text" id="joinRoom">
 </body>
 <script>
         $(function(){
-            var iosocket = io.connect('http://183.94.181.81');
+            var socket = io.connect('http://localhost');
  
-            iosocket.on('connect', function () {
+            socket.on('connect', function () {
                 $('#incomingChatMessages').append($('<li>Connected</li>')); 
-                iosocket.on('chat', function(message) {
-                    $('#incomingChatMessages').append($('<li></li>').text(message));
+                socket.on('chat', function(message) {
+                    console.log(message)
+                    $('#incomingChatMessages').append($('<li></li>').text(message.username +":"+message.data));
                 });
-                iosocket.on('disconnect', function() {
+                socket.on('disconnect', function() {
                     $('#incomingChatMessages').append('<li>Disconnected</li>');
                 });
             });
- 
+
             $('#outgoingChatMessage').keypress(function(event) {
                 if(event.which == 13) {
                     event.preventDefault();
-                    iosocket.send($('#outgoingChatMessage').val());
+                    socket.send({ message : $('#outgoingChatMessage').val()});
                     $('#incomingChatMessages').append($('<li></li>').text($('#outgoingChatMessage').val()));
+                    $('#outgoingChatMessage').val('');
+                }
+            });
+            $('#joinRoom').keypress(function(event) {
+                if(event.which == 13) {
+                    event.preventDefault();
+                    socket.emit('join', { username : $("#username").val() , room : $("#joinRoom").val()});
+                    $('#incomingChatMessages').append($('<li></li>').text($('#username').val()+' join in '+$('#joinRoom').val()));
                     $('#outgoingChatMessage').val('');
                 }
             });
