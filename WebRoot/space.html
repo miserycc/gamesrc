@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>SpaceGame</title>
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	font-family: "微软雅黑";
+	color: #666;
+}
+h1 {
+	font-size: 40px;
+	text-align: center;
+	margin-top: 100px;
+}
+p {
+	font-size: 20px;
+	text-align: center;
+	margin-top: 30px;
+}
+
+#mask {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	background: rgba(0,0,0,0.2);
+}
+#joinRoom {
+	width: 300px;
+	position: absolute;
+	left: 50%;
+	top: 50px;
+	margin-left: -150px;
+	padding-bottom: 10px;
+	background: #fff;
+	box-shadow: 0 0 5px 1px #000;
+}
+#joinRoom input[type='text'] {
+	width: 160px;
+	margin-left: 40px;
+	margin-top: 10px;
+	border: 1px solid #666;
+}
+#joinRoom input[type='button'] {
+	width: 50px;
+	border: none;
+	background: #333;
+	color:#fff;
+}
+#tips {
+	font-size: 50px;
+}
+#again {
+	display: none;
+}
+.confirm {
+	text-align: center;
+	width: 100px;
+	height: 30px;
+	border: 1px solid;
+}
+</style>
+</head>
+
+<body>
+	<div id="mask">
+		<div id="joinRoom">
+		</div>
+	</div>
+    <h1 id="hp">HP:<span>100</span></h1>
+    <p id="attack">You have pressed <span>0</span> times!</p>
+    <p id="tips">Please wait!</p>
+    <center><input id="again" class="confirm" type="button" value="Play again!" /></center>
+    <script src="scripts/jquery-1.10.2.min.js"></script>
+    <script src="scripts/socket.io.js"></script>
+    <script>
+	$(function() {
+		var socket = io.connect('http://183.94.179.234');
+		socket.on('connect', function () {
+			console.log("connect success!");
+		});
+		socket.on('rooms', function (data) {
+			$("#joinRoom").empty(); 
+			for(var i = 0; i < data.length; i++) {
+				var button = null;
+				switch(data[i].status) {
+					case 0:button = '<input class="roomSubmit" type="button" value="Join it!" style="background:#0c0;" /></div>';break;
+					case 1:button = '<input class="roomSubmit" type="button" value="Join it!" style="background:#cc0;" /></div>';break;
+					case 2:button = '<input class="roomSubmit" type="button" value="Join it!" style="background:#c00;" disabled="disabled" /></div>';break;
+				}
+				$('<div class="roomStatus"><input class="roomNum" type="text" data-roomId="'+data[i].id+'" disabled="disabled" value="['+data[i].id+'] '+data[i].player1+' '+data[i].player2+'" />'+button).appendTo("#joinRoom");			
+			}
+			$(".roomSubmit").click(function() {
+				$("#mask").fadeOut();
+				socket.emit('join', $(this).prev().attr("data-roomId"));
+			});
+		});
+		socket.on('start', function() {
+			$("#hp").find("span").text("100");
+			$("#attack").find("span").text("0");
+			$("#accept").unbind("click").attr("id","again").val("Play again!");
+			$("#again").hide().click(function() {
+				socket.emit('again');
+				$(this).unbind('click');
+			});
+			$("#tips").fadeOut(300,function() {$("#tips").text("3")}).fadeIn(300).delay(400).fadeOut(300,function(){$("#tips").text("2")}).fadeIn(300).delay(400).fadeOut(300,function(){$("#tips").text("1")}).fadeIn(300).delay(400).fadeOut(300,function(){
+				$("#tips").text("Start!");
+				$(document).keyup(function(event) {
+					if(event.which == 32) {
+						var attack = $("#attack").find("span");
+						attack.text(parseInt(attack.text()) + 1);
+						socket.emit('attack');
+					}
+				});			
+			}).fadeIn(300).delay(400).fadeOut(300);
+		});
+		socket.on('attack', function() {
+			var hp = $("#hp").find("span");
+			hp.text(parseInt(hp.text()) - 1);
+		});
+		socket.on('win', function() {
+			$(document).unbind("keyup");
+			$("#tips").fadeOut(300,function() {$("#tips").text("You win!")}).fadeIn(300);
+			$("#again").fadeIn();
+		});
+		socket.on('lose', function() {
+			$(document).unbind("keyup");
+			$("#tips").fadeOut(300,function() {$("#tips").text("You lose!")}).fadeIn(300);
+			$("#again").fadeIn();
+		});
+		socket.on('again', function() {
+			$("#again").val("Accept!").attr("id","accept");
+			$("#accept").click(function() {
+				socket.emit('accept');
+			});
+		});
+	});
+	</script>
+</body>
+</html>
