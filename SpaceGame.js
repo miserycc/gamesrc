@@ -13,6 +13,8 @@ app.listen(80, function() {
 var room = function(id) {
 	this.player1 = null;
 	this.player2 = null;
+	this.p1name = null;
+	this.p2name = null;
 	this.status = 0;
 	this.id = id;
 }
@@ -33,7 +35,36 @@ io.sockets.on('connection', function (socket) {
 		}
 	 	socket.join(data);			
 	  	if(socket.room) {
+	 		if(socket.room == undefined)return;
+	 		socket.to(socket.room).broadcast.emit("break");
+	 		var room = rs[socket.room - 1];
+	 		if((room == undefined)||(room.status == undefined))return;
+	 		switch(room.status) {
+	 			case 2:
+	 				if(room.player1 == socket.id) {
+	 					room.player1 = null;
+	 					room.p1name = null;
+	 				} else {
+			 			room.player2 = null;
+			 			room.p2name = null;
+	 				}
+		 			room.status = 1;
+		 			break;
+	 			case 1:
+	 				if(room.player1 == socket.id) {
+	 					room.player1 = null;
+	 					room.p1name = null;
+	 				} else {
+			 			room.player2 = null;
+			 			room.p2name = null;
+	 				}
+		 			room.status = 0;
+		 			break;
+	 		}	  		
 	 		socket.leave(socket.room);			
+	 		socket.broadcast.emit('rooms', rs);
+	 		console.log(socket.nickName+" leave "+socket.room);
+	 		io.sockets.emit('chat', {"message":socket.nickName+" leave "+socket.room ,"nickName": "", "room": "System"});
  		}
  		socket.room = data;
 	 	socket.attack = 0;
@@ -41,14 +72,17 @@ io.sockets.on('connection', function (socket) {
  		var room = rs[id];
  		switch(room.status) {
  			case 0:
-		 		room.player1 = socket.id.substring(0,5);
+		 		room.player1 = socket.id;
+		 		room.p1name = socket.nickName;
 	 			room.status = 1;
 	 			break;
  			case 1:
  				if(room.player1 == null) {
-		 			room.player1 = socket.id.substring(0,5);
+		 			room.player1 = socket.id;
+		 			room.p1name = socket.nickName;
  				} else {
-		 			room.player2 = socket.id.substring(0,5);
+		 			room.player2 = socket.id;
+		 			room.p2name = socket.nickName;
  				}
 	 			room.status = 2;
 	 			io.sockets.in(socket.room).emit('start');
@@ -57,40 +91,50 @@ io.sockets.on('connection', function (socket) {
 	 		 	socket.emit('err', "The room is full!");
 	 			break;
  		}
- 		console.log(socket.id+" join in "+data);
+ 		console.log(socket.nickName+" join in "+data);
+ 		io.sockets.emit('chat', {"message":socket.nickName+" join in "+socket.room ,"nickName": "", "room": "System"});
  		socket.broadcast.emit('rooms', rs);
  	});
  	socket.on('disconnect', function() {
  		if(socket.room == undefined)return;
- 		socket.to(socket.room).broadcast.emit("leave");
+ 		socket.to(socket.room).broadcast.emit("break");
  		var room = rs[socket.room - 1];
+ 		if((room == undefined)||(room.status == undefined))return;
  		switch(room.status) {
  			case 2:
- 				if(room.player1 == socket.id.substring(0,5)) {
+ 				if(room.player1 == socket.id) {
  					room.player1 = null;
+ 					room.p1name = null;
  				} else {
-		 			room.player2 = null
+		 			room.player2 = null;
+		 			room.p2name = null;
  				}
 	 			room.status = 1;
 	 			break;
  			case 1:
- 				if(room.player1 == socket.id.substring(0,5)) {
+ 				if(room.player1 == socket.id) {
  					room.player1 = null;
+ 					room.p1name = null;
  				} else {
-		 			room.player2 = null
+		 			room.player2 = null;
+		 			room.p2name = null;
  				}
 	 			room.status = 0;
 	 			break;
  		}
  		socket.leave(socket.room);
  		socket.broadcast.emit('rooms', rs);
- 		console.log(socket.id+" leave "+socket.room);
+ 		console.log(socket.nickName+" leave "+socket.room);
+ 		io.sockets.emit('chat', {"message":socket.nickName+" leave "+socket.room ,"nickName": "", "room": "System"});
+ 		socket.room = null;
+ 		socket.attack = 0;
  	});
  	socket.on('attack', function() {
  		socket.to(socket.room).broadcast.emit("attack");
  		socket.attack++;
  		if(socket.attack == 100) {
  			socket.emit('win');
+ 			io.sockets.emit('chat', {"message":socket.nickName+" win!" ,"nickName": "", "room": "System"});
  			socket.to(socket.room).emit('lose');
  		}
  	});
@@ -102,4 +146,57 @@ io.sockets.on('connection', function (socket) {
  		io.sockets.in(socket.room).emit('start');
  		socket.attack = 0;
  	});
+ 	socket.on('nickName',function(data) {
+ 		if(data == "") {
+ 			data = "SpacerX";
+ 		}
+ 		socket.nickName = data;
+ 	});
+ 	socket.on('chat',function(data) {
+ 		if(socket.nickName == undefined) {
+ 			socket.nickName = "SpacerX";
+ 		}
+ 		if(socket.room == undefined) {
+ 			socket.room = "World";
+ 		}
+ 		io.sockets.emit('chat', {"message":data ,"nickName": socket.nickName, "room": "Room "+socket.room});
+ 	});
+ 	socket.on('leave',function() {
+ 		socket.emit('leave');
+ 		var sks = io.sockets.to(socket.room).sockets;
+ 		for(var i = 0; i < sks.length; i++) {
+ 			sks[i].attack = 0;
+ 		}
+ 		io.sockets.in(socket.room).emit('break');
+ 		if(socket.room == undefined)return;
+ 		var room = rs[socket.room - 1];
+ 		if(room.status == undefined)return;
+ 		switch(room.status) {
+ 			case 2:
+ 				if(room.player1 == socket.id) {
+ 					room.player1 = null;
+ 					room.p1name = null;
+ 				} else {
+		 			room.player2 = null;
+		 			room.p2name = null;
+ 				}
+	 			room.status = 1;
+	 			break;
+ 			case 1:
+ 				if(room.player1 == socket.id) {
+ 					room.player1 = null;
+ 					room.p1name = null;
+ 				} else {
+		 			room.player2 = null;
+		 			room.p2name = null;
+ 				}
+	 			room.status = 0;
+	 			break;
+ 		}
+ 		socket.leave(socket.room);
+ 		console.log(socket.nickName+" leave "+socket.room);
+ 		io.sockets.emit('chat', {"message":socket.nickName+" leave "+socket.room ,"nickName": "", "room": "System"});
+ 		io.sockets.emit('rooms', rs);
+ 		socket.room = null;
+ 	})
 });

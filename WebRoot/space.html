@@ -2,6 +2,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="target-densitydpi=450,width=600,user-scalable=no">
+<meta name="apple-touch-fullscreen" content="no">
+<meta content="telephone=no" name="format-detection">
+<meta name="apple-mobile-web-app-capable" content="no">
 <title>SpaceGame</title>
 <style>
 * {
@@ -13,12 +17,16 @@
 h1 {
 	font-size: 40px;
 	text-align: center;
-	margin-top: 100px;
+	margin-top: 40px;
 }
 p {
 	font-size: 20px;
 	text-align: center;
 	margin-top: 30px;
+}
+
+input {
+	outline: none;
 }
 
 #mask {
@@ -33,7 +41,7 @@ p {
 	width: 300px;
 	position: absolute;
 	left: 50%;
-	top: 50px;
+	top: 30px;
 	margin-left: -150px;
 	padding-bottom: 10px;
 	background: #fff;
@@ -56,6 +64,10 @@ p {
 }
 #again {
 	display: none;
+	margin-top: 20px;
+}
+#accept {
+	margin-top: 20px;
 }
 .confirm {
 	text-align: center;
@@ -63,10 +75,85 @@ p {
 	height: 30px;
 	border: 1px solid;
 }
+#chatRoom {
+	width:100%;
+	height: 150px;
+	position: absolute;
+	bottom: 0;
+	z-index: 999;
+	background: #fff;
+	box-shadow: 0 0 5px 1px #000;
+	border-top: 1px solid #e5e5e5;
+}
+#nickName {
+	width: 100%;
+	height: 30px;
+	text-align: center;
+	font-size: 14px;
+	border: none;
+	line-height: 30px;
+}
+#chat {
+	width: 100%;
+	height: 88px;
+	border-top: 1px solid #e5e5e5;
+	border-bottom: 1px solid #e5e5e5;
+	overflow-y: scroll;
+}
+#chatInput {
+	width: 89%;
+	height: 30px;
+	border: none;
+	padding-left: 1%;
+}
+#chatSubmit {
+	width: 9%;
+	border: none;
+	height: 30px;
+	background: #666;
+	color: #fff;
+}
+#chat li {
+	list-style: none;
+	font-size: 12px;
+}
+#leave {
+	display: none;
+	width: 100px;
+	height: 30px;
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	border: 1px solid;
+}
+#press {
+	text-align: center;
+	line-height: 100px;
+	-webkit-appearance:none;
+	width: 100px;
+	height: 100px;
+	border-radius: 200px;
+	border: none;
+	background: #ccc;
+	color: #000;
+	outline: none;
+	margin-top: 10px;
+	box-shadow: 0 0 5px 1px #000;
+}
+#press:active {
+	background: #c0c0c0;
+}
 </style>
 </head>
 
 <body>
+	<input id="leave" type="button" value="Leave room" />
+	<div id="chatRoom">
+		<input id="nickName" type="text" placeholder="Type your nickname here!" />
+		<div id="chat"></div>
+		<input id="chatInput" type="text" placeholder="To say sth." />
+		<input id="chatSubmit" type="button" value="Send" />
+	</div>
 	<div id="mask">
 		<div id="joinRoom">
 		</div>
@@ -75,11 +162,25 @@ p {
     <p id="attack">You have pressed <span>0</span> times!</p>
     <p id="tips">Please wait!</p>
     <center><input id="again" class="confirm" type="button" value="Play again!" /></center>
+    <center><div id="press">Press me!</div></center>
     <script src="scripts/jquery-1.10.2.min.js"></script>
     <script src="scripts/socket.io.js"></script>
     <script>
 	$(function() {
-		var socket = io.connect('http://183.94.179.234');
+		var sUserAgent = navigator.userAgent.toLowerCase();  
+        var bIsIpad = sUserAgent.match(/ipad/i) == "ipad";  
+        var bIsIphoneOs = sUserAgent.match(/iphone os/i) == "iphone os";  
+        var bIsMidp = sUserAgent.match(/midp/i) == "midp";  
+        var bIsUc7 = sUserAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4";  
+        var bIsUc = sUserAgent.match(/ucweb/i) == "ucweb";  
+        var bIsAndroid = sUserAgent.match(/android/i) == "android";  
+        var bIsCE = sUserAgent.match(/windows ce/i) == "windows ce";  
+        var bIsWM = sUserAgent.match(/windows mobile/i) == "windows mobile";  
+        if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {
+        } else {  
+        	$("#press").detach();
+        }  
+		var socket = io.connect('http://42.159.201.78');
 		socket.on('connect', function () {
 			console.log("connect success!");
 		});
@@ -92,31 +193,43 @@ p {
 					case 1:button = '<input class="roomSubmit" type="button" value="Join it!" style="background:#cc0;" /></div>';break;
 					case 2:button = '<input class="roomSubmit" type="button" value="Join it!" style="background:#c00;" disabled="disabled" /></div>';break;
 				}
-				$('<div class="roomStatus"><input class="roomNum" type="text" data-roomId="'+data[i].id+'" disabled="disabled" value="['+data[i].id+'] '+data[i].player1+' '+data[i].player2+'" />'+button).appendTo("#joinRoom");			
+				$('<div class="roomStatus"><input class="roomNum" type="text" data-roomId="'+data[i].id+'" disabled="disabled" value="['+data[i].id+'] '+data[i].p1name+' '+data[i].p2name+'" />'+button).appendTo("#joinRoom");			
 			}
 			$(".roomSubmit").click(function() {
 				$("#mask").fadeOut();
+				socket.emit('nickName', $("#nickName").val());
 				socket.emit('join', $(this).prev().attr("data-roomId"));
+				$("#leave").show();
 			});
 		});
+		var isStart = false;
 		socket.on('start', function() {
+			if(isStart)return;
+			isStart = !true;
 			$("#hp").find("span").text("100");
 			$("#attack").find("span").text("0");
 			$("#accept").unbind("click").attr("id","again").val("Play again!");
 			$("#again").hide().click(function() {
 				socket.emit('again');
 				$(this).unbind('click');
+				console.log("run again")
 			});
+			$("#press").show();
 			$("#tips").fadeOut(300,function() {$("#tips").text("3")}).fadeIn(300).delay(400).fadeOut(300,function(){$("#tips").text("2")}).fadeIn(300).delay(400).fadeOut(300,function(){$("#tips").text("1")}).fadeIn(300).delay(400).fadeOut(300,function(){
-				$("#tips").text("Start!");
+				$("#tips").text("Space Start!Press it!");
 				$(document).keyup(function(event) {
 					if(event.which == 32) {
 						var attack = $("#attack").find("span");
 						attack.text(parseInt(attack.text()) + 1);
 						socket.emit('attack');
 					}
-				});			
-			}).fadeIn(300).delay(400).fadeOut(300);
+				});	
+				$("#press").click(function() {
+					var attack = $("#attack").find("span");
+					attack.text(parseInt(attack.text()) + 1);
+					socket.emit('attack');		
+				});		
+			}).fadeIn(300);
 		});
 		socket.on('attack', function() {
 			var hp = $("#hp").find("span");
@@ -124,19 +237,61 @@ p {
 		});
 		socket.on('win', function() {
 			$(document).unbind("keyup");
+			$("#press").unbind("click");
 			$("#tips").fadeOut(300,function() {$("#tips").text("You win!")}).fadeIn(300);
 			$("#again").fadeIn();
+			$("#press").hide();
+			isStart = false;
 		});
 		socket.on('lose', function() {
 			$(document).unbind("keyup");
+			$("#press").unbind("click");
 			$("#tips").fadeOut(300,function() {$("#tips").text("You lose!")}).fadeIn(300);
 			$("#again").fadeIn();
+			$("#press").hide();
+			isStart = false;
 		});
 		socket.on('again', function() {
+			$("#again").unbind("click");
 			$("#again").val("Accept!").attr("id","accept");
 			$("#accept").click(function() {
 				socket.emit('accept');
+				$(this).unbind("click");
 			});
+		});
+		socket.on('chat', function(data) {
+			if($("#chat").length >= 100) {
+				$("#chat").find("li").eq(0).detach();
+			}
+			$("#chat").append($("<li></li>").text("["+data.room+"]"+data.nickName+":"+data.message));
+			$("#chat").scrollTop(9999999999);
+		});
+		socket.on('leave', function() {
+			$("#mask").fadeIn();
+			$("#leave").hide();
+		});
+		socket.on('break', function() {
+			$(document).unbind("keyup");
+			$("#press").unbind("click");
+			$("#again").unbind("click");
+			$("#tips").clearQueue().show().text("Please wait!");	
+			isStart = false;		
+		});
+		$("#nickName").blur(function() {
+	    	socket.emit('nickName', $(this).val());
+	    });
+		$("#chatSubmit").click(function() {
+			if($("#chatInput").val() == "")return;
+			socket.emit('chat', $("#chatInput").val());
+			$("#chatInput").val("");
+		});
+		$("#chatInput").keyup(function(event) {
+			if(event.which == 13) {
+				$("#chatSubmit").click();
+			}
+		});
+		$("#leave").click(function() {
+			socket.emit('leave');
 		});
 	});
 	</script>
