@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tool</title>
+<style type="text/css">
+ul {
+    font-family: Courier, "微软雅黑";
+}
+</style>
+</head>
+<body>
+    <ul>
+
+    </ul>
+</body>
+<script src="scripts/jquery-1.10.2.min.js"></script>
+<script src="scripts/socket.io.js"></script>   
+<script>
+//输出log信息
+var showData = function(data, code) {
+    var from = null;
+    switch(code) {
+        case 0 : from = "System";break;
+        case 1 : from = "Server";break;
+        case 2 : from = "Client";break;
+    }
+    $("ul").prepend("<li>["+new Date().toLocaleString()+"]["+from+"]"+data+"</li>");
+}
+$(function() {
+    //初始化socket连接
+    var socket = io.connect("http://localhost");
+    //连接事件
+    socket.on("connect", function() {
+        showData("Connect success!", 0);
+    });
+    //连接断开事件
+    socket.on("disconnect", function() {
+        showData("Disconnect!", 0);
+    });
+    //接收message
+    socket.on("message", function(data) {
+        showData(data, 1);
+    });
+});
+</script>
+</html>
